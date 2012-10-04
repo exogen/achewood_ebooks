@@ -39,6 +39,7 @@ replace_names = {
     'Nightlife': 'Nightlife Mingus',
     'Pete': 'Nice Pete',
     'Pat Reynolds': 'Pat',
+    'Doctor Andretti': 'Dr. Andretti',
 }
 
 # Substitutions to make in character speech.
@@ -129,9 +130,14 @@ def remove_speech_meta(text):
     text = re.sub(r'(\s*\([^)]*\)\s*)$', '', text)
     return text
 
+def main():
+    data = scrape_all(sys.argv[1:])
+    output = json.dumps(data, ensure_ascii=False, indent=2)
+    print output.encode('utf8')
+
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        print json.dumps(scrape_all(sys.argv[1:]))
+        main()
     else:
         print "Usage: parse_transcriptions.py file [file ...]"
 
