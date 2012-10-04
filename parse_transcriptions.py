@@ -78,7 +78,7 @@ def scrape_file(fileobj):
 
 def parse_transcription(text):
     """
-    Yield a set of tuples, each having a character name and line of speech
+    Yield a set of (character name, line of speech) tuples found in input text
     """
     lines = [line.strip() for line in text.split(' / ')]
     for original_line in lines:
