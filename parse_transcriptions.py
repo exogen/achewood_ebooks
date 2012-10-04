@@ -52,13 +52,9 @@ replace_speech = {
 
 def scrape_all(filenames):
     data = {}
-    characters = defaultdict(list)
     for filename in filenames:
         for row, url, dialogue in scrape_file(open(filename)):
             data[url] = dialogue
-            for name, speech in dialogue:
-                characters[name].append(speech)
-
     return data
 
 def scrape_file(fileobj):
