@@ -155,5 +155,5 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         main()
     else:
-        print "Usage: parse_transcriptions.py file [file ...]"
+        print "Usage: parse_transcriptions.py FILE [FILE ...]"
 
