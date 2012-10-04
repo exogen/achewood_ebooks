@@ -18,6 +18,7 @@ replace_names = {
     'Teodore': u'Téodor',
     'Beef': 'Roast Beef',
     'Roastbeef': 'Roast Beef',
+    'Rb': 'Roast Beef',
     'Mr. Bear': 'Cornelius',
     'Mr Bear': 'Cornelius',
     'Cornelius Bear': 'Cornelius',
@@ -30,6 +31,7 @@ replace_names = {
     'Phillipe': 'Philippe',
     'Phillip': 'Philippe',
     'Philippie': 'Philippe',
+    'Philipe': 'Philippe',
     'Raymond': 'Ray',
     'Ray Smuckles': 'Ray',
     'Ramses': 'Ramses Luther Smuckles',
@@ -40,6 +42,8 @@ replace_names = {
     'Pete': 'Nice Pete',
     'Pat Reynolds': 'Pat',
     'Doctor Andretti': 'Dr. Andretti',
+    'Chris': 'Onstad',
+    'Chris Onstad': 'Onstad',
 }
 
 # Substitutions to make in character speech.
@@ -79,18 +83,22 @@ def parse_transcription(text):
     """
     lines = [line.strip() for line in text.split(' / ')]
     for original_line in lines:
+        # Remove descriptions, sound effects, and metadata.
         line = remove_meta(original_line).strip()
+        # Find lines of dialogue, e.g.
+        #   Ray: Hello
+        #   Mr. Bear: Hello
+        #   Todd [[shaking]]: Hello
         match = re.match(r"([\w?][\w?'. -]*)[^:]*:(.*)", line, re.UNICODE)
         if match:
-            name = normalize_name(match.group(1).strip())
-            speech = normalize_speech(remove_speech_meta(match.group(2).strip()))
-            if name and len(name) < 30 and speech:
+            name = normalize_name(match.group(1))
+            speech = normalize_speech(match.group(2))
+            if name and speech and len(name) < 30:
                 yield (name, speech)
 
 def unescape(s):
     """Unescape HTML entities and character references"""
-    p = HTMLParser.HTMLParser()
-    return p.unescape(s)
+    return HTMLParser.HTMLParser().unescape(s)
 
 def normalize(s):
     """Normalize quote types and whitespace"""
@@ -101,33 +109,45 @@ def normalize(s):
 
 def normalize_name(name):
     """Normalize a character name"""
-    name = name.title()
-    name = name.replace("'S ", "'s ")
-    name = name.replace(' Thinks', '').replace(' Thinking', '')
-    name = name.replace(' Types', '').replace(' Typing', '')
+    name = name.strip().title()
+    name = name.replace("'S ", "'s ") # Fix uppercase possessive caused by title().
+    name = name.replace(' Thinks', '').replace(' Thinking', '') # Remove descriptions.
+    name = name.replace(' Types', '').replace(' Typing', '') # Remove descriptions.
     return replace_names.get(name, name)
 
 def normalize_speech(text):
     """Normalize a line of speech"""
+    text = remove_speech_meta(text.strip())
     for key, value in replace_speech.iteritems():
         text = text.replace(key, value)
     return text
 
 def remove_meta(text):
     """Remove descriptions and metadata from the transcription"""
-    text = re.sub(r'(\[.*?\]+)', '', text)
-    text = re.sub(r'(\{.*?\}+)', '', text)
-    text = re.sub(r'(<.*?>+)', '', text)
+    text = re.sub(r'(\[.*?\]+)', '', text) # e.g. [one] or [[ two ]]
+    text = re.sub(r'(\{.*?\}+)', '', text) # e.g. {one} or {{ two }}
+    text = re.sub(r'(<.*?>+)', '', text) # e.g. <one> or <<two>>
     return text
 
 def remove_speech_meta(text):
-    """Remove descriptions people may have added to speech e.g. '(thinking)'"""
-    text = re.sub(r'^(\s*\([^)]*\)\s*)', '', text)
-    text = re.sub(r'(\s*\([^)]*\)\s*)$', '', text)
+    """Remove descriptions people may have added to speech"""
+    text = re.sub(r'^(\s*\([^)]*\)\s*)', '', text) # e.g. (to Ray) Hello
+    text = re.sub(r'(\s*\([^)]*\)\s*)$', '', text) # e.g. Hello (motions at Ray)
     return text
+
+def print_frequency(data):
+    """Print the number of times each character speaks"""
+    freq = defaultdict(int)
+    for url, dialogue in data.iteritems():
+        for name, speech in dialogue:
+            freq[name] += 1
+    
+    for name, count in sorted(freq.items(), key=lambda i: i[1]):
+        print "%s %s" % (count, name)
 
 def main():
     data = scrape_all(sys.argv[1:])
+    #print_frequency(data)
     output = json.dumps(data, ensure_ascii=False, indent=2)
     print output.encode('utf8')
 
