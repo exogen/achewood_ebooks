@@ -7,7 +7,8 @@ import HTMLParser
 from collections import defaultdict
 from bs4 import BeautifulSoup
 
-# Common character name substitutions.
+# Common character name substitutions based on watching character name
+# frequencies while refining this script.
 replace_names = {
     'Teodor': u'Téodor',
     'T?Odor': u'Téodor',
