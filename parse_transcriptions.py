@@ -7,6 +7,7 @@ import HTMLParser
 from collections import defaultdict
 from bs4 import BeautifulSoup
 
+# Common character name substitutions.
 replace_names = {
     'Teodor': u'Téodor',
     'T?Odor': u'Téodor',
@@ -39,6 +40,7 @@ replace_names = {
     'Pat Reynolds': 'Pat',
 }
 
+# Substitutions to make in character speech.
 replace_speech = {
     'Teodor': u'Téodor',
     'TEODOR': u'TÉODOR',
@@ -57,28 +59,6 @@ def scrape_all(filenames):
 
     return data
 
-def unescape(s):
-    p = HTMLParser.HTMLParser()
-    return p.unescape(s)
-
-def normalize(s):
-    s = s.replace(u'‘', "'").replace(u'’', "'") # Dumb down smart single quotes.
-    s = s.replace(u'“', '"').replace(u'”', '"') # Dumb down smart double quotes.
-    s = re.sub(r'[ ]+', ' ', s) # Condense multiple spaces.
-    return s
-
-def normalize_name(name):
-    name = name.title()
-    name = name.replace("'S ", "'s ")
-    name = name.replace(' Thinks', '').replace(' Thinking', '')
-    name = name.replace(' Types', '').replace(' Typing', '')
-    return replace_names.get(name, name)
-
-def normalize_speech(text):
-    for key, value in replace_speech.iteritems():
-        text = text.replace(key, value)
-    return text
-
 def scrape_file(fileobj):
     s = fileobj.read()
     try:
@@ -95,18 +75,10 @@ def scrape_file(fileobj):
             dialogue = list(parse_transcription(text))
             yield (row, url, dialogue)
 
-def remove_meta(text):
-    text = re.sub(r'(\[.*?\]+)', '', text)
-    text = re.sub(r'(\{.*?\}+)', '', text)
-    text = re.sub(r'(<.*?>+)', '', text)
-    return text
-
-def remove_speech_meta(text):
-    text = re.sub(r'^(\s*\([^)]*\)\s*)', '', text)
-    text = re.sub(r'(\s*\([^)]*\)\s*)$', '', text)
-    return text
-
 def parse_transcription(text):
+    """
+    Yield a set of tuples, each having a character name and line of speech
+    """
     lines = [line.strip() for line in text.split(' / ')]
     for original_line in lines:
         line = remove_meta(original_line).strip()
@@ -116,6 +88,45 @@ def parse_transcription(text):
             speech = normalize_speech(remove_speech_meta(match.group(2).strip()))
             if name and len(name) < 30 and speech:
                 yield (name, speech)
+
+def unescape(s):
+    """Unescape HTML entities and character references"""
+    p = HTMLParser.HTMLParser()
+    return p.unescape(s)
+
+def normalize(s):
+    """Normalize quote types and whitespace"""
+    s = s.replace(u'‘', "'").replace(u'’', "'") # Dumb down smart single quotes.
+    s = s.replace(u'“', '"').replace(u'”', '"') # Dumb down smart double quotes.
+    s = re.sub(r'[ ]+', ' ', s) # Condense multiple spaces.
+    return s
+
+def normalize_name(name):
+    """Normalize a character name"""
+    name = name.title()
+    name = name.replace("'S ", "'s ")
+    name = name.replace(' Thinks', '').replace(' Thinking', '')
+    name = name.replace(' Types', '').replace(' Typing', '')
+    return replace_names.get(name, name)
+
+def normalize_speech(text):
+    """Normalize a line of speech"""
+    for key, value in replace_speech.iteritems():
+        text = text.replace(key, value)
+    return text
+
+def remove_meta(text):
+    """Remove descriptions and metadata from the transcription"""
+    text = re.sub(r'(\[.*?\]+)', '', text)
+    text = re.sub(r'(\{.*?\}+)', '', text)
+    text = re.sub(r'(<.*?>+)', '', text)
+    return text
+
+def remove_speech_meta(text):
+    """Remove descriptions people may have added to speech e.g. '(thinking)'"""
+    text = re.sub(r'^(\s*\([^)]*\)\s*)', '', text)
+    text = re.sub(r'(\s*\([^)]*\)\s*)$', '', text)
+    return text
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
